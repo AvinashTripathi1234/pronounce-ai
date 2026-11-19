@@ -27,21 +27,41 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Scaffold Official Android Gradle Harness
+      - name: Clean & Recreate Android Platform Harness
         working-directory: ./client
         run: |
+          rm -rf android
           flutter create . --platforms=android --org com.pronounceai
-
-      - name: Patch Android SDK Version & Multidex (Required for WebRTC & LiveKit)
-        working-directory: ./client
-        run: |
-          # 1. Update minSdk to 21 across all gradle configs
-          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' {} +
-          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' {} +
-          find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' {} +
           
-          # 2. Inject Microphone and Audio Permissions into AndroidManifest.xml
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />' android/app/src/main/AndroidManifest.xml || true
+          # Patch minSdk to 21 for WebRTC compatibility using Python
+          python3 -c "
+          import re
+          path = 'android/app/build.gradle'
+          try:
+              with open(path, 'r') as f:
+                  content = f.read()
+              content = re.sub(r'minSdkVersion = flutter\.minSdkVersion', 'minSdkVersion = 21', content)
+              content = re.sub(r'minSdkVersion flutter\.minSdkVersion', 'minSdkVersion 21', content)
+              content = re.sub(r'minSdk = flutter\.minSdkVersion', 'minSdk = 21', content)
+              with open(path, 'w') as f:
+                  f.write(content)
+              print('Patched build.gradle successfully.')
+          except Exception as e:
+              print(f'Warning: {e}')
+          "
+          
+          # Inject Audio & Network Permissions into AndroidManifest.xml
+          python3 -c "
+          path = 'android/app/src/main/AndroidManifest.xml'
+          with open(path, 'r') as f:
+              xml = f.read()
+          perms = '''    <uses-permission android:name=\"android.permission.RECORD_AUDIO\" />\n    <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\" />\n    <uses-permission android:name=\"android.permission.INTERNET\" />\n    <uses-permission android:name=\"android.permission.BLUETOOTH_CONNECT\" />\n'''
+          if '<uses-permission' not in xml:
+              xml = xml.replace('<application', perms + '    <application')
+              with open(path, 'w') as f:
+                  f.write(xml)
+              print('Injected permissions successfully.')
+          "
 
       - name: Install Dependencies
         working-directory: ./client
