@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Real-Time Gateway: LiveKit SFU Media Server
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: livekit-sfu
+    restart: unless-stopped
+    command: --dev
+    ports:
+      - "7880:7880"         # WebSocket / HTTP signaling
+      - "7881:7881"         # TCP fallback
+      - "7882:7882/udp"     # UDP WebRTC media traffic
+    environment:
+      - LIVEKIT_KEYS=devkey: secret
+
+  # Backend Application Server & Real-time Scoring API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pronounce-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ENVIRONMENT=development
+      - ALIGNMENT_ENGINE=mock
+    depends_on:
+      - livekit

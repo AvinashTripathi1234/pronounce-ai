@@ -1,0 +1,39 @@
+name: pronounce_ai_client
+description: "Real-time AI pronunciation and accent coach powered by LiveKit SFU, audio_session, and phoneme alignment."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # LiveKit WebRTC client
+  livekit_client: ^2.4.0
+  # Audio session & focus management
+  audio_session: ^0.1.25
+  # Native Text-to-Speech Reference Audio
+  flutter_tts: ^4.2.2
+  # System permissions
+  permission_handler: ^11.3.1
+  # HTTP API client
+  http: ^1.2.1
+  # State management
+  provider: ^6.1.2
+  # Supabase Client & Auth
+  supabase_flutter: ^2.5.0
+  # Smooth UI animations
+  flutter_animate: ^4.5.0
+  # Beautiful typography
+  google_fonts: ^6.2.1
+  # Vector icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
