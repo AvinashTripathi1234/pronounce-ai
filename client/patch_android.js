@@ -5,7 +5,7 @@ const clientDir = __dirname;
 const androidDir = path.join(clientDir, 'android');
 const appDir = path.join(androidDir, 'app');
 
-console.log('--- Patching Android Project for LiveKit & WebRTC (SDK 36, minSdk 24) ---');
+console.log('--- Patching Android Project for LiveKit & WebRTC (SDK 35, minSdk 24) ---');
 
 // 1. Detect and patch build.gradle or build.gradle.kts
 let gradlePath = path.join(appDir, 'build.gradle');
@@ -21,9 +21,9 @@ if (fs.existsSync(gradlePath)) {
 
   if (isKts) {
     // Kotlin DSL
-    gradleContent = gradleContent.replace(/compileSdk\s*=.*$/m, 'compileSdk = 36');
+    gradleContent = gradleContent.replace(/compileSdk\s*=.*$/m, 'compileSdk = 35');
     gradleContent = gradleContent.replace(/minSdk\s*=.*$/m, 'minSdk = 24');
-    gradleContent = gradleContent.replace(/targetSdk\s*=.*$/m, 'targetSdk = 36');
+    gradleContent = gradleContent.replace(/targetSdk\s*=.*$/m, 'targetSdk = 35');
     
     if (!gradleContent.includes('multiDexEnabled')) {
       gradleContent = gradleContent.replace(
@@ -33,12 +33,12 @@ if (fs.existsSync(gradlePath)) {
     }
   } else {
     // Groovy DSL
-    gradleContent = gradleContent.replace(/compileSdkVersion\s+.*$/m, 'compileSdkVersion 36');
-    gradleContent = gradleContent.replace(/compileSdk\s*=.*$/m, 'compileSdk = 36');
+    gradleContent = gradleContent.replace(/compileSdkVersion\s+.*$/m, 'compileSdkVersion 35');
+    gradleContent = gradleContent.replace(/compileSdk\s*=.*$/m, 'compileSdk = 35');
     gradleContent = gradleContent.replace(/minSdkVersion\s+.*$/m, 'minSdkVersion 24');
     gradleContent = gradleContent.replace(/minSdk\s*=.*$/m, 'minSdk = 24');
-    gradleContent = gradleContent.replace(/targetSdkVersion\s+.*$/m, 'targetSdkVersion 36');
-    gradleContent = gradleContent.replace(/targetSdk\s*=.*$/m, 'targetSdk = 36');
+    gradleContent = gradleContent.replace(/targetSdkVersion\s+.*$/m, 'targetSdkVersion 35');
+    gradleContent = gradleContent.replace(/targetSdk\s*=.*$/m, 'targetSdk = 35');
 
     if (!gradleContent.includes('multiDexEnabled')) {
       gradleContent = gradleContent.replace(
@@ -52,19 +52,22 @@ if (fs.existsSync(gradlePath)) {
   gradleContent = gradleContent.replace(/implementation\s*\(?["']androidx\.multidex:multidex:[^"']+["']\)?/g, '// native multidex (minSdk 24)');
 
   fs.writeFileSync(gradlePath, gradleContent, 'utf8');
-  console.log('Successfully patched Gradle build config with compileSdk = 36, minSdk = 24.');
+  console.log('Successfully patched Gradle build config with compileSdk = 35, minSdk = 24.');
 } else {
   console.warn(`No build.gradle found in ${appDir}`);
 }
 
-// 2. Patch gradle.properties to suppress AGP multidex warning
+// 2. Patch gradle.properties to suppress AGP warnings
 const gradlePropsPath = path.join(androidDir, 'gradle.properties');
 let props = fs.existsSync(gradlePropsPath) ? fs.readFileSync(gradlePropsPath, 'utf8') : '';
 if (!props.includes('MULTIDEX_NOT_NEEDED')) {
   props += '\nandroid.sync.suppressAgpWarnings=MULTIDEX_NOT_NEEDED\n';
-  fs.writeFileSync(gradlePropsPath, props, 'utf8');
-  console.log('Added MULTIDEX_NOT_NEEDED suppression to gradle.properties.');
 }
+if (!props.includes('suppressUnsupportedCompileSdk')) {
+  props += 'android.suppressUnsupportedCompileSdk=36\n';
+}
+fs.writeFileSync(gradlePropsPath, props, 'utf8');
+console.log('Updated gradle.properties with suppression flags.');
 
 // 3. Patch AndroidManifest.xml
 const manifestPath = path.join(appDir, 'src', 'main', 'AndroidManifest.xml');
