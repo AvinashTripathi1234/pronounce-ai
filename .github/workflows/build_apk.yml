@@ -85,15 +85,7 @@ jobs:
             else
               echo "=== Debug build failed too! Last 150 lines: ==="
               tail -n 150 build_debug.log
-              python3 -c "
-import os
-for name in ['build_release.log', 'build_debug.log']:
-    if os.path.exists(name):
-        with open(name, 'r', errors='ignore') as f:
-            lines = [l.strip() for l in f.readlines() if 'error:' in l.lower() or 'exception' in l.lower() or 'failure' in l.lower()]
-            for l in lines[-10:]:
-                print(f'::error title={name}::{l[:250]}')
-" || true
+              grep -i -E "error:|failure|fatal" build_release.log | tail -n 10 | while read -r line; do echo "::error::$line"; done || true
               exit 1
             fi
           fi
