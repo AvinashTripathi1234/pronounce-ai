@@ -21,10 +21,6 @@ dependencies:
   http: ^1.2.1
   # State management
   provider: ^6.1.2
-  # Supabase Client & Auth
-  supabase_flutter: ^2.5.0
-  # Smooth UI animations
-  flutter_animate: ^4.5.0
   # Beautiful typography
   google_fonts: ^6.2.1
   # Vector icons

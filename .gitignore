@@ -49,3 +49,7 @@ yarn-error.log*
 
 # LiveKit logs
 *.log
+
+.localappdata/
+.appdata/
+.pub-cache/

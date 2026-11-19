@@ -50,17 +50,39 @@ jobs:
           if flutter build apk --release --no-tree-shake-icons --verbose > build_release.log 2>&1; then
             echo "Release APK build succeeded!"
           else
-            echo "=== Release build failed, showing last 100 lines of log ==="
-            tail -n 100 build_release.log
-            echo "=== Building Debug APK fallback ==="
+            echo "=== Release build failed, trying debug build ==="
             if flutter build apk --debug --no-tree-shake-icons --verbose > build_debug.log 2>&1; then
               echo "Debug APK build succeeded!"
             else
-              echo "=== Debug build failed too, showing last 100 lines of log ==="
-              tail -n 100 build_debug.log
+              echo "=== Both builds failed ==="
               exit 1
             fi
           fi
+
+      - name: Publish Build Diagnostics
+        if: always()
+        working-directory: ./client
+        run: |
+          echo "## Build Diagnostics" >> $GITHUB_STEP_SUMMARY
+          if [ -f build_release.log ]; then
+            echo "### Release Build Output (Last 100 lines)" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 100 build_release.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f build_debug.log ]; then
+            echo "### Debug Build Output (Last 100 lines)" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 100 build_debug.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: client/build_*.log
 
       - name: Verify APK Generated
         working-directory: ./client
