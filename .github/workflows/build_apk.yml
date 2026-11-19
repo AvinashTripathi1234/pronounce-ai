@@ -21,6 +21,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
@@ -32,44 +37,36 @@ jobs:
         run: |
           rm -rf android
           flutter create . --platforms=android --org com.pronounceai
-          
-          # Patch minSdk to 21 for WebRTC compatibility using Python
-          python3 -c "
-          import re
-          path = 'android/app/build.gradle'
-          try:
-              with open(path, 'r') as f:
-                  content = f.read()
-              content = re.sub(r'minSdkVersion = flutter\.minSdkVersion', 'minSdkVersion = 21', content)
-              content = re.sub(r'minSdkVersion flutter\.minSdkVersion', 'minSdkVersion 21', content)
-              content = re.sub(r'minSdk = flutter\.minSdkVersion', 'minSdk = 21', content)
-              with open(path, 'w') as f:
-                  f.write(content)
-              print('Patched build.gradle successfully.')
-          except Exception as e:
-              print(f'Warning: {e}')
-          "
-          
-          # Inject Audio & Network Permissions into AndroidManifest.xml
-          python3 -c "
-          path = 'android/app/src/main/AndroidManifest.xml'
-          with open(path, 'r') as f:
-              xml = f.read()
-          perms = '''    <uses-permission android:name=\"android.permission.RECORD_AUDIO\" />\n    <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\" />\n    <uses-permission android:name=\"android.permission.INTERNET\" />\n    <uses-permission android:name=\"android.permission.BLUETOOTH_CONNECT\" />\n'''
-          if '<uses-permission' not in xml:
-              xml = xml.replace('<application', perms + '    <application')
-              with open(path, 'w') as f:
-                  f.write(xml)
-              print('Injected permissions successfully.')
-          "
+          node patch_android.js
 
       - name: Install Dependencies
         working-directory: ./client
         run: flutter pub get
 
-      - name: Build Universal Release APK
+      - name: Build Android APK
         working-directory: ./client
-        run: flutter build apk --release --no-tree-shake-icons
+        run: |
+          echo "=== Starting Flutter APK Build ==="
+          if flutter build apk --release --no-tree-shake-icons --verbose > build_release.log 2>&1; then
+            echo "Release APK build succeeded!"
+          else
+            echo "=== Release build failed, showing last 100 lines of log ==="
+            tail -n 100 build_release.log
+            echo "=== Building Debug APK fallback ==="
+            if flutter build apk --debug --no-tree-shake-icons --verbose > build_debug.log 2>&1; then
+              echo "Debug APK build succeeded!"
+            else
+              echo "=== Debug build failed too, showing last 100 lines of log ==="
+              tail -n 100 build_debug.log
+              exit 1
+            fi
+          fi
+
+      - name: Verify APK Generated
+        working-directory: ./client
+        run: |
+          echo "=== Generated APK Files ==="
+          ls -la build/app/outputs/flutter-apk/*.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
