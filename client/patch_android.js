@@ -31,6 +31,13 @@ if (fs.existsSync(gradlePath)) {
         '$1$2\n        multiDexEnabled = true'
       );
     }
+
+    // Ensure release uses debug signing so CI can compile APK without a keystore
+    if (gradleContent.includes('signingConfig')) {
+      gradleContent = gradleContent.replace(/signingConfig\s*=.*$/m, 'signingConfig = signingConfigs.getByName("debug")');
+    } else {
+      gradleContent = gradleContent.replace(/release\s*\{/m, 'release {\n            signingConfig = signingConfigs.getByName("debug")');
+    }
   } else {
     // Groovy DSL
     gradleContent = gradleContent.replace(/compileSdkVersion\s+.*$/m, 'compileSdkVersion 35');
@@ -46,13 +53,20 @@ if (fs.existsSync(gradlePath)) {
         '$1$2\n        multiDexEnabled true'
       );
     }
+
+    // Ensure release uses debug signing so CI can compile APK without a keystore
+    if (gradleContent.includes('signingConfig')) {
+      gradleContent = gradleContent.replace(/signingConfig\s+.*$/m, 'signingConfig signingConfigs.debug');
+    } else {
+      gradleContent = gradleContent.replace(/release\s*\{/m, 'release {\n            signingConfig signingConfigs.debug');
+    }
   }
 
   // Remove any legacy androidx.multidex:multidex dependency since minSdk 24 has native multidex
   gradleContent = gradleContent.replace(/implementation\s*\(?["']androidx\.multidex:multidex:[^"']+["']\)?/g, '// native multidex (minSdk 24)');
 
   fs.writeFileSync(gradlePath, gradleContent, 'utf8');
-  console.log('Successfully patched Gradle build config with compileSdk = 35, minSdk = 24.');
+  console.log('Successfully patched Gradle build config with compileSdk = 35, minSdk = 24, and debug signing.');
 } else {
   console.warn(`No build.gradle found in ${appDir}`);
 }
