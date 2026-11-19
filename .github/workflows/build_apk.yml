@@ -5,14 +5,14 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java JDK 17
@@ -21,23 +21,34 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter
+      - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Install dependencies
+      - name: Scaffold Official Android Gradle Harness
+        working-directory: ./client
+        run: |
+          flutter create . --platforms=android --org com.pronounceai
+
+      - name: Configure Microphone & Network Permissions
+        working-directory: ./client
+        run: |
+          # Ensure essential permissions exist in AndroidManifest.xml
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />' android/app/src/main/AndroidManifest.xml || true
+
+      - name: Install Flutter Packages
         working-directory: ./client
         run: flutter pub get
 
-      - name: Build Release APK
+      - name: Build Universal Release APK
         working-directory: ./client
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release
 
-      - name: Upload Universal APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: pronounce-ai-apk
-          path: client/build/app/outputs/flutter-apk/*.apk
+          path: client/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
