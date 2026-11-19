@@ -32,23 +32,28 @@ jobs:
         run: |
           flutter create . --platforms=android --org com.pronounceai
 
-      - name: Configure Microphone & Network Permissions
+      - name: Patch Android SDK Version & Multidex (Required for WebRTC & LiveKit)
         working-directory: ./client
         run: |
-          # Ensure essential permissions exist in AndroidManifest.xml
+          # 1. Update minSdk to 21 across all gradle configs
+          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' {} +
+          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' {} +
+          find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' {} +
+          
+          # 2. Inject Microphone and Audio Permissions into AndroidManifest.xml
           sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />' android/app/src/main/AndroidManifest.xml || true
 
-      - name: Install Flutter Packages
+      - name: Install Dependencies
         working-directory: ./client
         run: flutter pub get
 
       - name: Build Universal Release APK
         working-directory: ./client
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: pronounce-ai-apk
-          path: client/build/app/outputs/flutter-apk/app-release.apk
+          path: client/build/app/outputs/flutter-apk/*.apk
           retention-days: 14
