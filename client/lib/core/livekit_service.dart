@@ -48,33 +48,23 @@ class LiveKitService extends ChangeNotifier {
       }
       await _audioSessionManager.activate();
 
-      // 2. Initialize LiveKit Room with RoomOptions
-      _room = Room(
-        roomOptions: const RoomOptions(
-          adaptiveStream: true,
-          dynacast: true,
-          defaultAudioPublishOptions: AudioPublishOptions(
-            dtx: true,
-          ),
-        ),
-      );
+      // 2. Initialize LiveKit Room
+      _room = Room();
       _listener = _room!.createListener();
       _setupRoomListeners();
 
       // 3. Connect to LiveKit SFU
-      await _room!.connect(liveKitUrl, token);
-
-      // 4. Publish Microphone Track (WebRTC Audio Stream)
-      _audioTrack = await LocalAudioTrack.create(
-        const AudioCaptureOptions(
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGain: true,
-          highPassFilter: true,
+      await _room!.connect(
+        liveKitUrl,
+        token,
+        roomOptions: const RoomOptions(
+          adaptiveStream: true,
+          dynacast: true,
         ),
       );
 
-      await _room!.localParticipant?.publishAudioTrack(_audioTrack!);
+      // 4. Enable Microphone (WebRTC Audio Stream)
+      await _room!.localParticipant?.setMicrophoneEnabled(true);
 
       // 5. Notify agent of the initial target sentence via Data Channel
       await sendTargetSentence(initialSentence);
@@ -133,12 +123,8 @@ class LiveKitService extends ChangeNotifier {
   /// Disconnects from the room and releases audio resources
   Future<void> stopSession() async {
     try {
-      if (_audioTrack != null) {
-        await _audioTrack!.stop();
-        await _audioTrack!.dispose();
-        _audioTrack = null;
-      }
       if (_room != null) {
+        await _room!.localParticipant?.setMicrophoneEnabled(false);
         await _room!.disconnect();
         await _room!.dispose();
         _room = null;

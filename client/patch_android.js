@@ -20,7 +20,7 @@ if (fs.existsSync(gradlePath)) {
   let gradleContent = fs.readFileSync(gradlePath, 'utf8');
 
   if (isKts) {
-    // Kotlin DSL - target SDK 36 for livekit_client, flutter_webrtc, flutter_tts compatibility
+    // Kotlin DSL
     gradleContent = gradleContent.replace(/compileSdk\s*=.*$/m, 'compileSdk = 36');
     gradleContent = gradleContent.replace(/minSdk\s*=.*$/m, 'minSdk = 24');
     gradleContent = gradleContent.replace(/targetSdk\s*=.*$/m, 'targetSdk = 36');
@@ -31,21 +31,8 @@ if (fs.existsSync(gradlePath)) {
         '$1$2\n        multiDexEnabled = true'
       );
     }
-    
-    // Ensure release uses debug signing and no shrinking
-    if (gradleContent.includes('buildTypes {')) {
-      gradleContent = gradleContent.replace(
-        /buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?\}/m,
-        `buildTypes {
-        release {
-            signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = false
-            isShrinkResources = false
-        }`
-      );
-    }
   } else {
-    // Groovy DSL - target SDK 36 for livekit_client, flutter_webrtc, flutter_tts compatibility
+    // Groovy DSL
     gradleContent = gradleContent.replace(/compileSdkVersion\s+.*$/m, 'compileSdkVersion 36');
     gradleContent = gradleContent.replace(/compileSdk\s*=.*$/m, 'compileSdk = 36');
     gradleContent = gradleContent.replace(/minSdkVersion\s+.*$/m, 'minSdkVersion 24');
@@ -57,19 +44,6 @@ if (fs.existsSync(gradlePath)) {
       gradleContent = gradleContent.replace(
         /(defaultConfig\s*\{[\s\S]*?)(versionName.*$)/m,
         '$1$2\n        multiDexEnabled true'
-      );
-    }
-
-    // Ensure release uses debug signing and no shrinking
-    if (gradleContent.includes('buildTypes {')) {
-      gradleContent = gradleContent.replace(
-        /buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?\}/m,
-        `buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
-        }`
       );
     }
   }

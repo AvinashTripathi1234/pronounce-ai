@@ -21,6 +21,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Set up Android SDK (API 36)
+        uses: android-actions/setup-android@v4
+        with:
+          packages: |
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -62,15 +73,27 @@ jobs:
       - name: Build Android APK
         working-directory: ./client
         run: |
-          echo "=== Starting Flutter APK Build ==="
-          if flutter build apk --release --no-tree-shake-icons --verbose > build_release.log 2>&1; then
+          echo "=== Starting Flutter Release APK Build ==="
+          if flutter build apk --release --no-tree-shake-icons --verbose 2>&1 | tee build_release.log; then
             echo "Release APK build succeeded!"
           else
-            echo "=== Release build failed, trying debug build ==="
-            if flutter build apk --debug --no-tree-shake-icons --verbose > build_debug.log 2>&1; then
+            echo "=== Release build failed! Last 150 lines: ==="
+            tail -n 150 build_release.log
+            echo "=== Trying debug APK build fallback ==="
+            if flutter build apk --debug --no-tree-shake-icons --verbose 2>&1 | tee build_debug.log; then
               echo "Debug APK build succeeded!"
             else
-              echo "=== Both builds failed ==="
+              echo "=== Debug build failed too! Last 150 lines: ==="
+              tail -n 150 build_debug.log
+              python3 -c "
+import os
+for name in ['build_release.log', 'build_debug.log']:
+    if os.path.exists(name):
+        with open(name, 'r', errors='ignore') as f:
+            lines = [l.strip() for l in f.readlines() if 'error:' in l.lower() or 'exception' in l.lower() or 'failure' in l.lower()]
+            for l in lines[-10:]:
+                print(f'::error title={name}::{l[:250]}')
+" || true
               exit 1
             fi
           fi
