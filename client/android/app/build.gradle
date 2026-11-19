@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.pronounceai.app"
-    compileSdk = 34
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -22,7 +22,7 @@ android {
         applicationId = "com.pronounceai.app"
         // WebRTC & LiveKit require minimum SDK 21
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
@@ -42,5 +42,5 @@ flutter {
 }
 
 dependencies {
-    implementation "androidx.multidex:multidex:2.0.1"
+    // Native multidex enabled for minSdk 24
 }

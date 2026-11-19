@@ -35,8 +35,24 @@ jobs:
       - name: Clean & Recreate Android Platform Harness
         working-directory: ./client
         run: |
+          echo "=== 1. Backing up genuine source code and pubspec ==="
+          cp -r lib /tmp/pronounce_lib_backup
+          cp pubspec.yaml /tmp/pronounce_pubspec_backup.yaml
+
+          echo "=== 2. Recreating clean Android platform scaffold ==="
           rm -rf android
           flutter create . --platforms=android --org com.pronounceai
+
+          echo "=== 3. Restoring genuine app source and eliminating any generated templates ==="
+          rm -rf lib
+          cp -r /tmp/pronounce_lib_backup lib
+          cp /tmp/pronounce_pubspec_backup.yaml pubspec.yaml
+          rm -rf test
+
+          echo "=== 4. Verifying lib/main.dart contents ==="
+          head -n 25 lib/main.dart
+
+          echo "=== 5. Applying Android SDK 36 & permission patches ==="
           node patch_android.js
 
       - name: Install Dependencies
